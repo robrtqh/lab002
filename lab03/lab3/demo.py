@@ -1,3 +1,12 @@
-from lab3.core.dice import Dice
+from lab3.item.default_catalog import DefaultCatalog
+from lab3.item import enchantment
 
-print(Dice() is Dice.get_instance())
+catalog = DefaultCatalog.create()
+a = catalog.create(DefaultCatalog.IRON_SWORD)
+b = catalog.create(DefaultCatalog.IRON_SWORD)
+b.enchant(enchantment.FIERY)
+
+print(a.name, a.description)  # Железный меч урон 17
+print(b.name, b.description)  # Железный меч урон 23
+print(catalog.create(DefaultCatalog.IRON_SWORD).description)  # урон 17, шаблон не изменился
+print(a is not b)  # True
