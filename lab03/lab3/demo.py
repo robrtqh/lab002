@@ -1,12 +1,8 @@
+from lab3.hero.hero_class import HeroClass
 from lab3.item.default_catalog import DefaultCatalog
-from lab3.item import enchantment
 
 catalog = DefaultCatalog.create()
-a = catalog.create(DefaultCatalog.IRON_SWORD)
-b = catalog.create(DefaultCatalog.IRON_SWORD)
-b.enchant(enchantment.FIERY)
-
-print(a.name, a.description)  # Железный меч урон 17
-print(b.name, b.description)  # Железный меч урон 23
-print(catalog.create(DefaultCatalog.IRON_SWORD).description)  # урон 17, шаблон не изменился
-print(a is not b)  # True
+for hero_class in HeroClass:
+    kit = hero_class.get_starter_kit(catalog)
+    weapon, armor = kit.create_weapon(), kit.create_armor()
+    print(f"{hero_class.display_name}: {weapon.name} ({weapon.description}), {armor.name} ({armor.description})")
