@@ -13,8 +13,15 @@ from lab3.tactic.tactic import Tactic
 from lab3.world.expedition_report import ExpeditionReport
 from lab3.world.rewards import Rewards
 
+from lab3.enemy.armored_enemy import ArmoredEnemy
+from lab3.enemy.legendary_enemy import LegendaryEnemy
+from lab3.enemy.windfury_enemy import WindfuryEnemy
+
 LOOT_CHANCE = 0.6
 ENCHANT_CHANCE = 0.3
+ELITE_CHANCE = 0.2
+DOUBLE_ELITE_CHANCE = 0.25
+ARMORED_CHANCE = 0.3
 
 
 class Location(ABC):
@@ -42,6 +49,8 @@ class Location(ABC):
 
         hero.rest()
         enemy = self._create_enemy()
+        if dice.chance(ELITE_CHANCE):
+            enemy = self._make_elite(enemy, dice)  
         battle = Battle(hero, enemy, tactic).run()
 
         if battle.outcome == Outcome.VICTORY:
@@ -50,6 +59,18 @@ class Location(ABC):
             rewards = self._punish(hero)
         return ExpeditionReport(seed, self._code, tactic.code, battle, rewards)
 
+    def _make_elite(self, enemy: Enemy, dice: Dice) -> Enemy:
+        both = dice.chance(DOUBLE_ELITE_CHANCE)
+        if dice.chance(0.5):
+            enemy = LegendaryEnemy(enemy)
+            if both:
+                enemy = WindfuryEnemy(enemy)
+        else:
+            enemy = WindfuryEnemy(enemy)
+            if both:
+                enemy = LegendaryEnemy(enemy)
+        return ArmoredEnemy(enemy) if dice.chance(ARMORED_CHANCE) else enemy
+    
     def _reward(self, hero: Hero, enemy: Enemy, dice: Dice) -> Rewards:
         experience = enemy.experience_reward
         gold = enemy.roll_gold_reward()

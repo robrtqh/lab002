@@ -73,10 +73,37 @@ def demo_strategy():
             f"у героя осталось {mage.health}/{mage.max_health} здоровья"
         )
 
+def demo_decorator():
+    from lab3.core.dice import Dice
+    from lab3.enemy.armored_enemy import ArmoredEnemy
+    from lab3.enemy.dragon import Dragon
+    from lab3.enemy.goblin import Goblin
+    from lab3.enemy.legendary_enemy import LegendaryEnemy
+    from lab3.enemy.windfury_enemy import WindfuryEnemy
+
+    print("\n===== Декоратор =====")
+    enemies = [
+        Goblin(),
+        LegendaryEnemy(Goblin()),
+        WindfuryEnemy(Goblin()),
+        LegendaryEnemy(WindfuryEnemy(Goblin())),
+        ArmoredEnemy(Goblin()),
+        ArmoredEnemy(LegendaryEnemy(WindfuryEnemy(Dragon()))),
+    ]
+    for enemy in enemies:
+        Dice.get_instance().reseed(5)
+        hits = [str(enemy.roll_damage().damage) for _ in range(3)]
+        received = enemy.receive_hit(20)
+        print(
+            f"{enemy.name}: удары {', '.join(hits)}, награда {enemy.experience_reward} опыта; "
+            f"входящий урон 20 -> {received.amount}, здоровье {enemy.health}/{enemy.max_health}"
+        )
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     demo_chain()
     demo_strategy() 
+    demo_decorator()
 
 
 if __name__ == "__main__":
