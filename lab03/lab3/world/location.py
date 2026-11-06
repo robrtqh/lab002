@@ -37,7 +37,7 @@ class Location(ABC):
             seed = dice.next_seed()
         dice.reseed(seed)
 
-        hero.restore_health()
+        hero.rest()
         enemy = self._create_enemy()  # вызов фабричного метода
         battle = Battle(hero, enemy).run()
 

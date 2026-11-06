@@ -1,12 +1,17 @@
+from typing import Optional
+
 from lab3.combat.hit import Hit
 from lab3.core.dice import Dice
+from lab3.defense.damage import Damage
+from lab3.defense.damage_handler import DamageHandler
 from lab3.enemy.enemy import Enemy
 
 
 class AbstractEnemy(Enemy):
-    """Общая логика врагов: здоровье, урон в диапазоне, награда."""
+    """Общая логика врагов. Защита задаётся цепочкой обработчиков (или None)."""
 
-    def __init__(self, code, name, max_health, min_damage, max_damage, experience_reward, gold_reward):
+    def __init__(self, code, name, max_health, min_damage, max_damage,
+                 experience_reward, gold_reward, defense: Optional[DamageHandler] = None):
         self._code = code
         self._name = name
         self._max_health = max_health
@@ -14,18 +19,17 @@ class AbstractEnemy(Enemy):
         self._max_damage = max_damage
         self._experience_reward = experience_reward
         self._gold_reward = gold_reward
+        self._defense = defense
         self._health = max_health
 
     def roll_damage(self) -> Hit:
         return Hit(Dice.get_instance().roll(self._min_damage, self._max_damage), False)
 
-    def receive_hit(self, damage: int) -> int:
-        dealt = max(1, self._reduce_damage(damage))
-        self._health = max(0, self._health - dealt)
-        return dealt
-
-    def _reduce_damage(self, damage: int) -> int:
-        """Наследники могут уменьшать входящий урон."""
+    def receive_hit(self, amount: int) -> Damage:
+        damage = Damage(amount)
+        if self._defense is not None:
+            self._defense.handle(damage)  # применение цепочки защиты
+        self._health = max(0, self._health - damage.amount)
         return damage
 
     def is_alive(self) -> bool:

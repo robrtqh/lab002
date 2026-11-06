@@ -33,7 +33,7 @@ class Battle:
 
     def _strike(self, attacker: Combatant, source: Side, defender: Combatant, target: Side) -> None:
         hit = attacker.roll_damage()
-        dealt = defender.receive_hit(hit.damage)
+        dealt = defender.receive_hit(hit.damage).amount
         event_type = EventType.CRITICAL_HIT if hit.critical else EventType.HIT
         self._events.append(BattleEvent(self._round, event_type, source, target, dealt, defender.health))
 

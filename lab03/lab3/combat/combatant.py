@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from lab3.combat.hit import Hit
+from lab3.defense.damage import Damage
 
 
 class Combatant(ABC):
@@ -31,5 +32,6 @@ class Combatant(ABC):
         """Удар, который будет нанесён данной сущностью."""
 
     @abstractmethod
-    def receive_hit(self, damage: int) -> int:
-        """Получение удара, возвращает урон, который прошёл на самом деле."""
+    def receive_hit(self, damage: int) -> Damage:
+        """Получение удара, возвращает объект Damage с итогом."""
+    pass

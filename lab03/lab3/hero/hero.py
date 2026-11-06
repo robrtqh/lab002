@@ -1,11 +1,12 @@
 from lab3.combat.combatant import Combatant
 from lab3.combat.hit import Hit
-from lab3.core.mathutil import round_half_up
+from lab3.defense.damage import Damage
 from lab3.hero.hero_class import HeroClass
 from lab3.item.armor import Armor
 from lab3.item.item import Item
 from lab3.item.weapon import Weapon
 from lab3.kit.starter_kit_factory import StarterKitFactory
+from lab3.progress.achievement import Achievement
 
 MAX_NAME_LENGTH = 20
 STARTING_GOLD = 50
@@ -16,28 +17,30 @@ EXPERIENCE_PER_LEVEL = 100
 
 class Hero(Combatant):
     def __init__(self, builder: "Hero.Builder"):
-        # создавать героя нужно через Hero.Builder, он проверяет все значения
         self._name = builder.name
         self._hero_class = builder.hero_class
         self._level = builder.level
-        self._experience = 0
+        self._experience = builder.experience
         self._gold = builder.gold
         self._weapon = builder.weapon
         self._armor = builder.armor
-        self._inventory: list[Item] = []
-        self._health = self.max_health
+        self._inventory: list[Item] = list(builder.inventory)
+        self._achievements: list[Achievement] = list(builder.achievements)
+        self._defense = None
+        self._health = 0
+        self.rest()
 
     class Builder:
-        """Строитель: пошаговая сборка героя с проверкой в build()."""
-
         def __init__(self):
             self.name = None
             self.hero_class = None
             self.weapon = None
             self.armor = None
-            # необязательные поля сразу получают значения по умолчанию
             self.level = 1
+            self.experience = 0
             self.gold = STARTING_GOLD
+            self.inventory = []
+            self.achievements = []
 
         def set_name(self, name):
             self.name = name
@@ -56,7 +59,6 @@ class Hero(Combatant):
             return self
 
         def set_starter_kit(self, kit: StarterKitFactory):
-            """Берёт оружие и броню из стартового набора (абстрактная фабрика)."""
             self.weapon = kit.create_weapon()
             self.armor = kit.create_armor()
             return self
@@ -65,8 +67,20 @@ class Hero(Combatant):
             self.level = level
             return self
 
+        def set_experience(self, experience):
+            self.experience = experience
+            return self
+
         def set_gold(self, gold):
             self.gold = gold
+            return self
+
+        def set_inventory(self, inventory):
+            self.inventory = list(inventory)
+            return self
+
+        def set_achievements(self, achievements):
+            self.achievements = list(achievements)
             return self
 
         def build(self) -> "Hero":
@@ -80,6 +94,8 @@ class Hero(Combatant):
                 raise ValueError("Герою нужны оружие и броня")
             if self.level < 1:
                 raise ValueError("Уровень героя не может быть меньше 1")
+            if self.experience < 0:
+                raise ValueError("Опыта не может быть меньше нуля")
             if self.gold < 0:
                 raise ValueError("Золота не может быть меньше нуля")
             return Hero(self)
@@ -90,22 +106,23 @@ class Hero(Combatant):
         hit = self._weapon.roll_damage()
         return Hit(hit.damage + (self._level - 1) * DAMAGE_PER_LEVEL, hit.critical)
 
-    def receive_hit(self, damage: int) -> int:
-        reduced = round_half_up(damage * (1 - self._armor.defense))
-        dealt = max(1, reduced)  # хотя бы единицу урона броня пропускает всегда
-        self._health = max(0, self._health - dealt)
-        return dealt
+    def receive_hit(self, amount: int) -> Damage:
+        damage = Damage(amount)
+        self._defense.handle(damage)  # применение цепочки защиты
+        self._health = max(0, self._health - damage.amount)
+        return damage
 
     def is_alive(self) -> bool:
         return self._health > 0
 
     # --- поведение между экспедициями ---
 
-    def restore_health(self) -> None:
+    def rest(self) -> None:
+        """Отдых: здоровье восстанавливается, цепочка защиты собирается заново (барьер восстанавливается)."""
         self._health = self.max_health
+        self._defense = self._hero_class.create_defense(self._armor, self._level)
 
     def gain_experience(self, amount: int) -> int:
-        """Начисляет опыт, возвращает количество полученных уровней."""
         self._experience += amount
         levels_gained = 0
         while self._experience >= self.experience_to_next_level:
@@ -131,7 +148,6 @@ class Hero(Combatant):
         self._inventory.remove(item)
 
     def equip(self, item: Item) -> None:
-        """Экипирует предмет из инвентаря, снятый предмет возвращается в инвентарь."""
         if isinstance(item, Weapon):
             self.remove_item(item)
             self._inventory.append(self._weapon)
@@ -140,8 +156,15 @@ class Hero(Combatant):
             self.remove_item(item)
             self._inventory.append(self._armor)
             self._armor = item
+            self._defense = self._hero_class.create_defense(self._armor, self._level)
         else:
             raise ValueError(f"Предмет нельзя экипировать: {item.name}")
+
+    def unlock(self, achievement: Achievement) -> bool:
+        if achievement in self._achievements:
+            return False
+        self._achievements.append(achievement)
+        return True
 
     # --- свойства ---
 
@@ -192,3 +215,7 @@ class Hero(Combatant):
     @property
     def inventory(self) -> tuple:
         return tuple(self._inventory)
+
+    @property
+    def achievements(self) -> tuple:
+        return tuple(self._achievements)
