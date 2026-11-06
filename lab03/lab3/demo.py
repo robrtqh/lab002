@@ -152,6 +152,36 @@ def demo_observer():
     print("Записей в журнале:", len(journal.get_entries(warrior.name)))
 
 
+def demo_proxy():
+    import tempfile
+    from pathlib import Path
+
+    from lab3.hero.hero_class import HeroClass
+    from lab3.item.default_catalog import DefaultCatalog
+    from lab3.storage.caching_hero_repository import CachingHeroRepository
+    from lab3.storage.file_hero_repository import FileHeroRepository
+
+    print("===== Заместитель =====")
+    catalog = DefaultCatalog.create()
+    with tempfile.TemporaryDirectory() as folder:
+        save_file = Path(folder) / "heroes.json"
+        file_repo = FileHeroRepository(save_file, catalog)
+        file_repo.save(new_hero("Артур", HeroClass.WARRIOR, 1, catalog))
+        print("Содержимое файла:")
+        print(save_file.read_text(encoding="utf-8"), end="")
+        print(
+            "Без заместителя два поиска дают один и тот же объект:",
+            file_repo.find_by_name("Артур") is file_repo.find_by_name("Артур"),
+        )
+
+        cached = CachingHeroRepository(file_repo)
+        from_cache = cached.find_by_name("Артур")
+        print("С заместителем два поиска дают один и тот же объект:", from_cache is cached.find_by_name("Артур"))
+        from_cache.add_gold(100)
+        cached.save(from_cache)
+        print("После сохранения через заместитель золото героя в файле:", file_repo.find_by_name("Артур").gold)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     demo_chain()
@@ -159,6 +189,7 @@ def main():
     demo_decorator()
     demo_adapter() 
     demo_observer()
+    demo_proxy()
 
 
 if __name__ == "__main__":
