@@ -99,11 +99,31 @@ def demo_decorator():
             f"входящий урон 20 -> {received.amount}, здоровье {enemy.health}/{enemy.max_health}"
         )
 
+def demo_adapter():
+    from lab3.enemy.haunted_weapon import HauntedWeapon
+    from lab3.hero.hero_class import HeroClass
+    from lab3.item.default_catalog import DefaultCatalog
+    from lab3.tactic.cautious_tactic import CautiousTactic
+    from lab3.world.haunted_manor import HauntedManor
+
+    print("===== Адаптер =====")
+    catalog = DefaultCatalog.create()
+    bow = catalog.create_weapon(DefaultCatalog.ELVEN_BOW)
+    haunted = HauntedWeapon(bow)
+    print("Предмет: " + VIEW.describe(bow))
+    print(f"Враг:    {haunted.name} ({haunted.max_health} здоровья, награда {haunted.experience_reward} опыта)")
+
+    manor = HauntedManor(catalog)
+    ranger = new_hero("Леголас", HeroClass.RANGER, 2, catalog)
+    VIEW.print_report(manor.explore(ranger, CautiousTactic(), 55), manor.display_name)
+
+    
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     demo_chain()
     demo_strategy() 
     demo_decorator()
+    demo_adapter() 
 
 
 if __name__ == "__main__":
