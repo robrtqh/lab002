@@ -54,10 +54,29 @@ def demo_chain():
     full_chain.set_next(ArmorHandler(0.3)).set_next(BarrierHandler(30))
     print_hits("Уклонение 50% -> броня 30% -> барьер 30", full_chain, 3)
 
+def demo_strategy():
+    from lab3.hero.hero_class import HeroClass
+    from lab3.item.default_catalog import DefaultCatalog
+    from lab3.tactic.aggressive_tactic import AggressiveTactic
+    from lab3.tactic.balanced_tactic import BalancedTactic
+    from lab3.tactic.cautious_tactic import CautiousTactic
+    from lab3.world.crypt import Crypt
+
+    print("===== Стратегия =====")
+    catalog = DefaultCatalog.create()
+    crypt = Crypt(catalog)
+    for tactic in (BalancedTactic(), AggressiveTactic(), CautiousTactic()):
+        mage = new_hero("Мерлин", HeroClass.MAGE, 2, catalog)
+        report = crypt.explore(mage, tactic, 9)
+        print(
+            f"{tactic.display_name}: {describe_outcome(report)}, раундов {count_rounds(report)}, "
+            f"у героя осталось {mage.health}/{mage.max_health} здоровья"
+        )
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     demo_chain()
+    demo_strategy() 
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ from lab3.enemy.enemy import Enemy
 from lab3.hero.hero import Hero
 from lab3.item.item import Item
 from lab3.item.item_catalog import ItemCatalog
+from lab3.tactic.balanced_tactic import BalancedTactic
+from lab3.tactic.tactic import Tactic
 from lab3.world.expedition_report import ExpeditionReport
 from lab3.world.rewards import Rewards
 
@@ -24,28 +26,29 @@ class Location(ABC):
 
     @abstractmethod
     def _create_enemy(self) -> Enemy:
-        """ФАБРИЧНЫЙ МЕТОД: какого врага создать, решают подклассы."""
+        """Фабричный метод: какого врага создать, решают подклассы."""
 
     @abstractmethod
     def _get_loot_table(self) -> list:
         """Коды предметов из каталога, которые можно найти в локации."""
 
-    def explore(self, hero: Hero, seed: Optional[int] = None) -> ExpeditionReport:
-        """Общая логика для всех локаций: враг, бой, награда."""
+    def explore(self, hero: Hero, tactic: Optional[Tactic] = None,
+                seed: Optional[int] = None) -> ExpeditionReport:
+        tactic = tactic or BalancedTactic()
         dice = Dice.get_instance()
         if seed is None:
             seed = dice.next_seed()
         dice.reseed(seed)
 
         hero.rest()
-        enemy = self._create_enemy()  # вызов фабричного метода
-        battle = Battle(hero, enemy).run()
+        enemy = self._create_enemy()
+        battle = Battle(hero, enemy, tactic).run()
 
         if battle.outcome == Outcome.VICTORY:
             rewards = self._reward(hero, enemy, dice)
         else:
             rewards = self._punish(hero)
-        return ExpeditionReport(seed, self._code, battle, rewards)
+        return ExpeditionReport(seed, self._code, tactic.code, battle, rewards)
 
     def _reward(self, hero: Hero, enemy: Enemy, dice: Dice) -> Rewards:
         experience = enemy.experience_reward
@@ -61,14 +64,12 @@ class Location(ABC):
     def _roll_loot(self, dice: Dice) -> Optional[Item]:
         if not dice.chance(LOOT_CHANCE):
             return None
-        # добыча - копия шаблона из каталога (прототип), зачаровываем именно копию
         loot = self._catalog.create(dice.pick(self._get_loot_table()))
         if dice.chance(ENCHANT_CHANCE):
             loot.enchant(dice.pick(list(loot.possible_enchantments)))
         return loot
 
     def _punish(self, hero: Hero) -> Rewards:
-        """Проигравший герой теряет половину золота."""
         lost_gold = hero.gold // 2
         hero.spend_gold(lost_gold)
         return Rewards(0, -lost_gold, None, 0)
