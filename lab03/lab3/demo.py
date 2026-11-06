@@ -117,13 +117,48 @@ def demo_adapter():
     ranger = new_hero("Леголас", HeroClass.RANGER, 2, catalog)
     VIEW.print_report(manor.explore(ranger, CautiousTactic(), 55), manor.display_name)
 
-    
+
+def demo_observer():
+    from lab3.combat.outcome import Outcome
+    from lab3.event.game_event import GameEvent
+    from lab3.event.game_event_listener import GameEventListener
+    from lab3.event.game_event_publisher import GameEventPublisher
+    from lab3.event.game_event_type import GameEventType
+    from lab3.hero.hero_class import HeroClass
+    from lab3.item.default_catalog import DefaultCatalog
+    from lab3.progress.achievement_tracker import AchievementTracker
+    from lab3.progress.expedition_journal import ExpeditionJournal
+    from lab3.world.forest import Forest
+
+    class PrintListener(GameEventListener):
+        def on_event(self, event):
+            print(f"Событие {event.type.name}: герой {event.hero.name}")
+
+    print("===== Наблюдатель =====")
+    catalog = DefaultCatalog.create()
+    events = GameEventPublisher()
+    journal = ExpeditionJournal()
+    tracker = AchievementTracker()
+    for event_type in (GameEventType.VICTORY, GameEventType.DEFEAT):
+        events.subscribe(event_type, journal)
+        events.subscribe(event_type, PrintListener())
+    events.subscribe(GameEventType.VICTORY, tracker)
+
+    warrior = new_hero("Артур", HeroClass.WARRIOR, 1, catalog)
+    report = Forest(catalog).explore(warrior, seed=7)
+    result = GameEventType.VICTORY if report.battle.outcome == Outcome.VICTORY else GameEventType.DEFEAT
+    events.publish(GameEvent(result, warrior, report))
+    print("Достижения героя:", ", ".join(a.display_name for a in warrior.achievements))
+    print("Записей в журнале:", len(journal.get_entries(warrior.name)))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     demo_chain()
     demo_strategy() 
     demo_decorator()
     demo_adapter() 
+    demo_observer()
 
 
 if __name__ == "__main__":
