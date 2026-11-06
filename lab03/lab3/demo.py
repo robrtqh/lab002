@@ -181,15 +181,35 @@ def demo_proxy():
         cached.save(from_cache)
         print("После сохранения через заместитель золото героя в файле:", file_repo.find_by_name("Артур").gold)
 
+def demo_facade():
+    import tempfile
+    from pathlib import Path
+
+    from lab3.core.dice import Dice
+    from lab3.game.game_facade import GameFacade
+    from lab3.hero.hero_class import HeroClass
+    from lab3.world.forest import Forest
+
+    print("===== Фасад =====")
+    with tempfile.TemporaryDirectory() as folder:
+        game = GameFacade(Path(folder) / "game.json")
+        game.create_hero("Гэндальф", HeroClass.MAGE.code)
+        Dice.get_instance().reseed(11)
+        report = game.explore("Гэндальф", Forest.CODE, "cautious")
+        print("Экспедиция через фасад: " + VIEW.summarize(
+            report,
+            game.get_location(report.location_code).display_name,
+            game.get_tactic(report.tactic_code).display_name,
+        ))
+        VIEW.print_hero(game.get_hero("Гэндальф"))
+
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    demo_chain()
-    demo_strategy() 
-    demo_decorator()
-    demo_adapter() 
-    demo_observer()
-    demo_proxy()
+    for demo in (demo_chain, demo_strategy, demo_decorator, demo_adapter,
+                 demo_observer, demo_proxy, demo_facade):
+        demo()
+        print()
 
 
 if __name__ == "__main__":
